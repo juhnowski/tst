@@ -1,10 +1,31 @@
 (ns tst.core
     (:require [reagent.core :as reagent :refer [atom]]
               [secretary.core :as secretary :include-macros true]
-              [accountant.core :as accountant]))
+              [accountant.core :as accountant]
+              [ajax.core :refer [GET POST]]
+    )
+)
 
 ;; -------------------------
 ;; Views
+
+(def state (atom {:data "Not fetched"}))
+
+(defn handler [response]
+  (str response))
+
+(defn fetch-data []
+  (js/setTimeout (fn [] (swap! state assoc :data (str (GET "/about"))))
+                 1000))
+
+
+(defn other-component []
+  (fetch-data)
+  (fn []
+    [:div "State is: " (:data @state)])
+)
+;;-----------------------------------
+
 (defn lister [items]
   [:ul
    (for [item items]
@@ -20,6 +41,28 @@
 (defn hello-component [name]
   [:p "Hello, " name "!"])
 
+  (defn timer-component []
+    (let [seconds-elapsed (reagent/atom 0)]
+      (fn []
+        (js/setTimeout #(swap! seconds-elapsed inc) 1000)
+        [:div
+         "Seconds Elapsed: " @seconds-elapsed]))
+)
+
+(defn atom-input [value]
+  [:input {:type "text"
+           :value @value
+           :on-change #(reset! value (-> % .-target .-value))}]
+)
+
+(defn shared-state []
+  (let [val (reagent/atom "foo")]
+    (fn []
+      [:div
+       [:p "The value is now: " @val]
+       [:p "Change it here: " [atom-input val]]]))
+)
+
 (defn home-page []
   [:div [:h2 "Welcome to tst"]
    [:div [:a {:href "/about"} "go to about page"]
@@ -27,6 +70,10 @@
    [lister-user]]
 
    [:div [:a {:href "/click"} "go to click-counter page"]
+
+   [timer-component]
+   [shared-state]
+   [other-component]
 ]])
 
 (def click-count (reagent/atom 0))
